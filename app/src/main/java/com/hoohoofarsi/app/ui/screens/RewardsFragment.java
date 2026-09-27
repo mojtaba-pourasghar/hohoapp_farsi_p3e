@@ -72,7 +72,7 @@ public class RewardsFragment extends BaseFragment {
             {"◎", "کاشف", "پنج ستاره گرفتی"},
             {"✓", "ده پاسخ درست", "در تمرین بخش‌ها"},
             {"◆", "پنج روز پیوسته", "هر روز تمرین"},
-            {"▲", "دانشمند کوچک", "نمره‌ی کامل در درس ۱"},
+            {"▲", "نویسنده‌ی کوچک", "نمره‌ی کامل در درس ۱"},
             {"●", "درس کامل", "آزمون با نتیجه‌ی کامل"}
         };
         boolean[] earned = {earnedFirstLesson, earnedCounter, earnedTenRight, earnedFiveDays, earnedSymmetry, earnedFullChapter};

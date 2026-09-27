@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The science questions for practice, worksheets and exams. Unlike math, science questions
+ * The Persian-lesson questions for practice, worksheets and exams. Unlike math, these questions
  * cannot be generated from a formula, so each one is written by hand from the book, in
  * data/Chapter<N>Quiz.java, and tagged with its section and level.
  *

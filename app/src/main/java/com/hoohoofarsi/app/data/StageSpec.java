@@ -1,7 +1,7 @@
 package com.hoohoofarsi.app.data;
 
 /**
- * The moving picture that plays while هوهو explains a step. In the science app every scene is a
+ * The moving picture that plays while هوهو explains a step. In the page-camera mode every scene is a
  * real page of the printed book: the camera starts on the whole page, flies into the picture
  * being talked about, frames it with a glowing ring, and moves on to the next picture in turn —
  * the way a teacher's finger moves across the book on the desk.

@@ -51,7 +51,7 @@ public class WorksheetIndexFragment extends BaseFragment {
 
         ((TextView) view.findViewById(R.id.chapter_title)).setText("درس " + ch.numberFa + ": " + ch.title);
         ((TextView) view.findViewById(R.id.chapter_subtitle))
-            .setText("کاربرگ ۳۰ سؤالی را همین‌جا می‌نویسی؛ کاغذ لازم نیست. هر چهارده درس و هر سه سطح باز است.");
+            .setText("کاربرگ ۳۰ سؤالی را همین‌جا می‌نویسی؛ کاغذ لازم نیست. هر هفده درس و هر سه سطح باز است.");
 
         LinearLayout list = view.findViewById(R.id.list_container);
         list.removeAllViews();

@@ -91,7 +91,7 @@ public class QuizFragment extends BaseFragment {
 
         onTap(view, R.id.quiz_hint, () -> {
             QuestionItem it = session.current();
-            // a science question's explanation is its answer, so the hint points back to the
+            // a hand-written question's explanation is its answer, so the hint points back to the
             // book instead: which section the question comes from, and which pages to look at
             String hint = hintFor(it);
             mascot().showBubble(hint, true);

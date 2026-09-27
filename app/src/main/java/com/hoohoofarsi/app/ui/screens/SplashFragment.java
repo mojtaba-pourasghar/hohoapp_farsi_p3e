@@ -44,7 +44,7 @@ public class SplashFragment extends BaseFragment {
         view.findViewById(R.id.splash_start).setOnClickListener(v -> goToMap());
 
         TtsManager tts = TtsManager.get();
-        if (tts != null) tts.speak("سلام! من هوهو هستم، معلم علوم تو. بیا با هم علوم سوم دبستان را کشف کنیم.");
+        if (tts != null) tts.speak("سلام! من هوهو هستم، معلمِ فارسیِ تو. بیا با هم کتابِ فارسیِ سوم دبستان را بخوانیم.");
 
         autoAdvance = this::goToMap;
         handler.postDelayed(autoAdvance, 2600);

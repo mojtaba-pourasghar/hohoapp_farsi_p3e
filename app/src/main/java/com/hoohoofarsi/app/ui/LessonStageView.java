@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.util.Locale;
 
 /**
- * The moving picture هوهو shows while explaining: a real page of the science book. The camera
+ * The moving picture هوهو shows while explaining: a real page of the textbook. The camera
  * starts on the whole page, flies into each picture the step talks about, rings it with a
  * glowing frame and a travelling spark, and moves on to the next — timed to the narration, so the
  * child's eyes are always on the picture هوهو is talking about.

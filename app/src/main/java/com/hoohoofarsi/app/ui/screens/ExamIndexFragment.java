@@ -50,7 +50,7 @@ public class ExamIndexFragment extends BaseFragment {
 
         ((TextView) view.findViewById(R.id.chapter_title)).setText("درس " + ch.numberFa + ": " + ch.title);
         ((TextView) view.findViewById(R.id.chapter_subtitle))
-            .setText("آزمون از همه‌ی بخش‌های این درس است؛ مثل امتحان مدرسه. هر چهارده درس و هر سه سطح باز است.");
+            .setText("آزمون از همه‌ی بخش‌های این درس است؛ مثل امتحان مدرسه. هر هفده درس و هر سه سطح باز است.");
 
         LinearLayout list = view.findViewById(R.id.list_container);
         list.removeAllViews();
