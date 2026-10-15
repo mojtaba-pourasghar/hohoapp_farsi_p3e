@@ -14,7 +14,6 @@ import androidx.annotation.Nullable;
 
 import com.hoohoofarsi.app.R;
 import com.hoohoofarsi.app.tts.TtsManager;
-import com.hoohoofarsi.app.tts.VoiceSetup;
 import com.hoohoofarsi.app.ui.BaseFragment;
 import com.hoohoofarsi.app.ui.Screen;
 import com.hoohoofarsi.app.ui.mascot.HooHooView;
@@ -54,8 +53,10 @@ public class SplashFragment extends BaseFragment {
         if (!isAdded()) return;
         handler.removeCallbacks(autoAdvance);
         nav().go(Screen.MAP);
-        // the lessons are spoken, so tell the parent right away if this device has no Persian voice
-        VoiceSetup.promptIfMissing(requireContext());
+        // No «صدای فارسی نصب نیست» dialog any more. It made sense when every word came from the
+        // device's own engine; now all 3999 lines and the words that read a question are recorded
+        // in هوهو's voice and come from the host, so a phone without a Persian engine is not
+        // missing anything to apologise for.
     }
 
     @Override

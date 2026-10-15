@@ -12,6 +12,7 @@ grouped under each chapter, and inside it under each page and each section.
 """
 import glob
 import hashlib
+import json
 import os
 import re
 import sys
@@ -21,6 +22,7 @@ from pronounce import spoken as _spoken, number_word, HUNDREDS  # noqa: E402
 
 # «--plain» writes the third column without the vowels — see tools/pronounce.py
 VOWELS_ON = "--plain" not in sys.argv
+FIXED = {}
 
 
 def spoken(text):
@@ -28,6 +30,19 @@ def spoken(text):
 
 SRC = "app/src/main/java/com/hoohoofarsi/app/data"
 OUT = "app/src/main/res/raw/audio_manifest.txt"
+
+# Lines whose spoken form was fixed by hand in the voice studio. The manifest is generated, so
+# an edit made there would be lost on the next rebuild — it is kept here instead, and applied
+# last. This file is in git, so the correction travels with the project.
+OVERRIDES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice-overrides.json")
+
+
+def overrides():
+    try:
+        with open(OVERRIDES, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
 
 KEY = re.compile(r'"([pt]\d{3}_\d+x?)"\s*,\s*\n?\s*"((?:[^"\\]|\\.)*)"', re.S)
 # «// ۱. ...» in the section lessons, «// ── صفحه‌ی ۷ — ... ──» in the page lessons
@@ -203,12 +218,18 @@ def read_block(path):
         else:
             key, text = value
             text = text.replace("\\n", " ")
-            lines.append("%s | %s | %s" % (key, text, spoken(text)))
+            said = FIXED.get(key) or spoken(text)
+            lines.append("%s | %s | %s" % (key, text, said))
             count += 1
     return lines, count
 
 
 def main():
+    global FIXED
+    FIXED = overrides()
+    if FIXED:
+        print("اصلاحِ دستیِ متن: %d خط از %s" % (len(FIXED), os.path.basename(OVERRIDES)))
+
     blocks = []
     total = 0
     for index, (number, title) in enumerate(CHAPTERS, 1):

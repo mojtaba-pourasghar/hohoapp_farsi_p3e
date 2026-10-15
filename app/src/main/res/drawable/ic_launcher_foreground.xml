@@ -1,28 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- ساخته‌ی tools/make_icon.py — با دست عوضش نکن؛ آن اسکریپت را عوض کن و دوباره بزن. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <path android:fillColor="#D8811F" android:pathData="M24,48 C18,50 14,58 16,66 C18,72 26,74 30,70 L34,56 Z" />
-    <path android:fillColor="#D8811F" android:pathData="M84,48 C90,50 94,58 92,66 C90,72 82,74 78,70 L74,56 Z" />
+    <path android:fillColor="#FBF4E6" android:pathData="M40.05,62.66 L74.68,62.66 L74.68,65.54 L40.05,65.54 Z" />
+    <path android:fillColor="#FBF4E6" android:pathData="M36.44,69.15 L78.29,69.15 L78.29,72.04 L36.44,72.04 Z" />
+    <path android:fillColor="#D8811F" android:pathData="M48.71,37.4 L47.27,30.19 L55.92,34.52 Z" />
+    <path android:fillColor="#D8811F" android:pathData="M66.03,37.4 L67.47,30.19 L58.81,34.52 Z" />
+    <path android:fillColor="#E8973A" android:pathData="M42.22,49.67 a15.15,15.87 0 1,0 30.3,0 a15.15,15.87 0 1,0 -30.3,0" />
+    <path android:fillColor="#FDF4E3" android:pathData="M46.91,45.34 a10.46,9.02 0 1,0 20.92,0 a10.46,9.02 0 1,0 -20.92,0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M47.7,44.62 a4.62,4.62 0 1,0 9.24,0 a4.62,4.62 0 1,0 -9.24,0" />
+    <path android:fillColor="#3B3027" android:pathData="M50.37,44.62 a1.95,1.95 0 1,0 3.9,0 a1.95,1.95 0 1,0 -3.9,0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M52.53,43.61 a0.79,0.79 0 1,0 1.59,0 a0.79,0.79 0 1,0 -1.59,0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M57.8,44.62 a4.62,4.62 0 1,0 9.24,0 a4.62,4.62 0 1,0 -9.24,0" />
+    <path android:fillColor="#3B3027" android:pathData="M60.47,44.62 a1.95,1.95 0 1,0 3.9,0 a1.95,1.95 0 1,0 -3.9,0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M62.63,43.61 a0.79,0.79 0 1,0 1.59,0 a0.79,0.79 0 1,0 -1.59,0" />
+    <path android:fillColor="#D8811F" android:pathData="M57.37,48.95 L59.75,53.28 L54.99,53.28 Z" />
+    <path android:fillColor="#D94F7A" android:pathData="M39.62,36.68 a2.6,2.6 0 1,0 5.19,0 a2.6,2.6 0 1,0 -5.19,0" />
+    <path android:fillColor="#D94F7A" android:pathData="M41.78,34.52 a2.6,2.6 0 1,0 5.19,0 a2.6,2.6 0 1,0 -5.19,0" />
+    <path android:fillColor="#D94F7A" android:pathData="M41.78,38.85 a2.6,2.6 0 1,0 5.19,0 a2.6,2.6 0 1,0 -5.19,0" />
+    <path android:fillColor="#D94F7A" android:pathData="M43.95,36.68 a2.6,2.6 0 1,0 5.19,0 a2.6,2.6 0 1,0 -5.19,0" />
+    <path android:fillColor="#F7C94B" android:pathData="M42.36,36.68 a2.02,2.02 0 1,0 4.04,0 a2.02,2.02 0 1,0 -4.04,0" />
+    <path android:fillColor="#F2708F" android:pathData="M33.29,73.52 L34.52,70.64 L30.93,69.11 L29.71,72 Z" />
+    <path android:fillColor="#F4B63F" android:pathData="M34.4,70.92 L35.13,69.19 L31.55,67.67 L30.81,69.4 Z" />
+    <path android:fillColor="#48BB54" android:pathData="M35.13,69.19 L43.97,48.41 L40.38,46.89 L31.55,67.67 Z" />
+    <path android:fillColor="#2F9A3C" android:pathData="M37.59,60.01 L42.74,47.89 L41.61,47.41 L36.46,59.53 Z" />
+    <path android:fillColor="#F2C98A" android:pathData="M44.7,46.68 L41.12,45.16 L44.38,42.46 Z" />
+    <path android:fillColor="#3B3027" android:pathData="M44.62,43.92 L43.16,43.3 L44.38,42.46 Z" />
+    <path android:fillColor="#D8811F" android:pathData="M40.48,56.89 a3.9,5.77 0 1,0 7.79,0 a3.9,5.77 0 1,0 -7.79,0" />
+    <path android:fillColor="#D8811F" android:pathData="M66.46,56.89 a3.9,5.77 0 1,0 7.79,0 a3.9,5.77 0 1,0 -7.79,0" />
+    <path android:fillColor="#2F6FE4" android:pathData="M41.49,64.1 L73.24,64.1 L73.24,70.6 L41.49,70.6 Z" />
+    <path android:fillColor="#FBF4E6" android:pathData="M42.94,67.71 L71.8,67.71 L71.8,69.87 L42.94,69.87 Z" />
+    <path android:fillColor="#8B5CF6" android:pathData="M37.89,70.6 L76.85,70.6 L76.85,77.81 L37.89,77.81 Z" />
+    <path android:fillColor="#FBF4E6" android:pathData="M39.33,74.56 L75.41,74.56 L75.41,76.73 L39.33,76.73 Z" />
 
-    <path android:fillColor="#E8973A" android:pathData="M 24,54 a 30,30 0 1,0 60,0 a 30,30 0 1,0 -60,0" />
-
-    <path android:fillColor="#FDF4E3" android:pathData="M38,44 C38,34 46,28 54,28 C62,28 70,34 70,44 L70,58 C70,68 62,72 54,72 C46,72 38,68 38,58 Z" />
-
-    <path android:fillColor="#FFFFFF" android:pathData="M 38,48 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0" />
-    <path android:fillColor="#3B3027" android:pathData="M 42.6,48 a 3.4,3.4 0 1,0 6.8,0 a 3.4,3.4 0 1,0 -6.8,0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M 54,48 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0" />
-    <path android:fillColor="#3B3027" android:pathData="M 58.6,48 a 3.4,3.4 0 1,0 6.8,0 a 3.4,3.4 0 1,0 -6.8,0" />
-
-    <path android:fillColor="#D8811F" android:pathData="M54,56 L60,64 L48,64 Z" />
-
-    <!-- flower over the ear, matching the in-app character -->
-    <path android:fillColor="#D94F7A" android:pathData="M 26,30 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
-    <path android:fillColor="#D94F7A" android:pathData="M 31,25 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
-    <path android:fillColor="#D94F7A" android:pathData="M 31,35 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
-    <path android:fillColor="#D94F7A" android:pathData="M 36,30 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
-    <path android:fillColor="#F7C94B" android:pathData="M 32,30 a 4,4 0 1,0 8,0 a 4,4 0 1,0 -8,0" />
 </vector>

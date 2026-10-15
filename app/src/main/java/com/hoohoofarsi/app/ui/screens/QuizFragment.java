@@ -25,6 +25,7 @@ import com.hoohoofarsi.app.data.QuizSessionHolder;
 import com.hoohoofarsi.app.tts.LessonAudio;
 import com.hoohoofarsi.app.tts.QuestionVoice;
 import com.hoohoofarsi.app.ui.BaseFragment;
+import com.hoohoofarsi.app.ui.VoiceGate;
 import com.hoohoofarsi.app.ui.FeedbackDialog;
 import com.hoohoofarsi.app.ui.Screen;
 import com.hoohoofarsi.app.ui.UiKit;
@@ -112,7 +113,28 @@ public class QuizFragment extends BaseFragment {
             }
         });
 
-        renderQuestion(view);
+        // The words that read a question — the numbers, «به‌اضافه‌ی», «چند» — are the shared
+        // clips, chapter -1. Without them هوهو cannot read the question at all, so the same
+        // window that holds a lesson holds a quiz.
+        gate = VoiceGate.requireAll(this, () -> renderQuestion(view), -1, chapter);
+    }
+
+    /** Back steps to the question before this one, rather than throwing the set away. */
+    @Override
+    public boolean onBackPressed() {
+        View root = getView();
+        if (root == null || session == null || session.index <= 0) return false;
+        goTo(root, session.index - 1);
+        return true;
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (gate != null) {
+            gate.dismiss();
+            gate = null;
+        }
+        super.onDestroyView();
     }
 
     /** Binds a tap only when that layout actually has the control. */
@@ -153,6 +175,9 @@ public class QuizFragment extends BaseFragment {
         saveAttempt();
         renderQuestion(root);
     }
+
+    /** The «صدا هنوز نیامده» window, while it is up. */
+    private android.app.Dialog gate;
 
     private void saveAttempt() {
         state().saveAttempt(attemptKey, session.index, session.answers());

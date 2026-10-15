@@ -14,15 +14,20 @@ import androidx.core.content.ContextCompat;
 
 import com.hoohoofarsi.app.R;
 import com.hoohoofarsi.app.data.AppState;
+import com.hoohoofarsi.app.data.Access;
 import com.hoohoofarsi.app.data.Book;
 import com.hoohoofarsi.app.data.Lessons;
 import com.hoohoofarsi.app.data.PageLessons;
+import com.hoohoofarsi.app.data.VoiceCatalog;
+import com.hoohoofarsi.app.net.Net;
 import com.hoohoofarsi.app.data.LessonKind;
 import com.hoohoofarsi.app.data.LessonScript;
 import com.hoohoofarsi.app.data.LessonStep;
 import com.hoohoofarsi.app.tts.LessonAudio;
+import com.hoohoofarsi.app.tts.VoiceStore;
 import com.hoohoofarsi.app.tts.SoundManager;
 import com.hoohoofarsi.app.ui.BaseFragment;
+import com.hoohoofarsi.app.ui.VoiceGate;
 import com.hoohoofarsi.app.ui.FeedbackDialog;
 import com.hoohoofarsi.app.ui.LessonStageView;
 import com.hoohoofarsi.app.ui.Screen;
@@ -40,6 +45,9 @@ public class LessonFragment extends BaseFragment {
     private int chapter, section;
     /** > 0 when this is a lesson for one page of the printed book. */
     private int page;
+
+    /** The «صدا هنوز نیامده» window, while it is up. */
+    private android.app.Dialog gate;
     private LessonScript script;
     private int stepIndex = 0;
     private final StringBuilder typed = new StringBuilder();
@@ -73,11 +81,22 @@ public class LessonFragment extends BaseFragment {
             if (page > 0) chapter = script.chapter;
         }
 
+
         stage = view.findViewById(R.id.lesson_stage);
         onTap(view, R.id.lesson_back, () -> {
             LessonAudio.stop();
             nav().go(Screen.MAP);
         });
+
+        // The last gate, and the one that matters: «برویم صفحه‌ی بعد کتاب» walks straight from
+        // page to page across the whole book, so the lesson itself has to check — otherwise the
+        // free pages are a door left open onto all hundred and forty-four.
+        if (!paid() && !(page > 0 ? Access.page(page) : Access.section(chapter, section))) {
+            LessonAudio.stop();
+            goPaywall(page > 0 ? "صفحه‌ی " + fa(page) + " کتاب"
+                : "درس " + Book.chapter(chapter).numberFa + "، بخشِ " + fa(section + 1));
+            return;
+        }
 
         if (script == null) {
             ((TextView) view.findViewById(R.id.lesson_caption)).setText("درسِ صوتی این بخش هنوز آماده نیست.");
@@ -96,13 +115,29 @@ public class LessonFragment extends BaseFragment {
         int saved = page > 0 ? state().pageStep(page) : state().lessonStep(chapter, section);
         stepIndex = saved > 0 && saved < script.steps.size() ? saved : 0;
 
-        renderStep();
+        // Nothing starts until this chapter's voice is on the phone. A child cannot tell «the
+        // clips have not arrived» from «هوهو sounds like a robot today», so the window says it
+        // and holds the lesson until it is fixed — or until it is clear there is no connection
+        // to fix it with, and going on with the device's voice is the better of two.
+        gate = VoiceGate.require(this, chapter, this::renderStep);
+    }
+
+    /** Back walks the lesson backwards a step at a time before it leaves the lesson. */
+    @Override
+    public boolean onBackPressed() {
+        if (script == null || stepIndex <= 0) return false;
+        goToStep(stepIndex - 1);
+        return true;
     }
 
     @Override
     public void onDestroyView() {
         LessonAudio.stop();
         if (stage != null) stage.stop();
+        if (gate != null) {
+            gate.dismiss();            // the screen is going; its window must not outlive it
+            gate = null;
+        }
         super.onDestroyView();
     }
 
@@ -243,6 +278,47 @@ public class LessonFragment extends BaseFragment {
         });
     }
 
+    /**
+     * When this step's clip has not been downloaded, a line offering to fetch the chapter.
+     *
+     * Nothing is broken without it — the device voice reads the same words — so this is an
+     * offer, not a warning, and it disappears the moment the clip is on the device. Tapping it
+     * pulls the whole chapter down, because a child who wants this line will want the next one.
+     */
+    private View voiceDownloadOffer(LessonStep step) {
+        if (step == null || step.audioKey == null) return null;
+        if (VoiceStore.has(requireContext(), step.audioKey)) return null;
+        if (VoiceCatalog.fileName(requireContext(), step.audioKey) == null) return null;
+
+        final int which = VoiceCatalog.chapterOf(step.audioKey);
+        TextView offer = UiKit.text(requireContext(),
+            Net.online(requireContext())
+                ? "🔊 صدای هوهو برای این درس روی دستگاه نیست. بزن تا دانلود شود."
+                : "🔊 صدای هوهو برای این درس نیامده. وقتی اینترنت وصل شد، خودش می‌آید.",
+            12.5f, R.color.orange_text, true);
+        int pad = UiKit.dp(requireContext(), 12);
+        offer.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(offer, requireContext(), R.color.orange_bg, R.color.orange_border);
+        if (Net.online(requireContext())) {
+            offer.setOnClickListener(v -> {
+                offer.setText("در حال دانلود…");
+                VoiceStore.pause(false);
+                VoiceStore.downloadChapter(requireContext(), which, new VoiceStore.Progress() {
+                    @Override public void onProgress(int chapterIndex, int done, int total) {
+                        if (isAdded()) offer.setText("در حال دانلود… " + fa(done) + " از " + fa(total));
+                    }
+                    @Override public void onFinished(int chapterIndex, int downloaded, int failed) {
+                        if (!isAdded()) return;
+                        offer.setText(failed == 0
+                            ? "✓ صدا آمد — «دوباره بگو» را بزن"
+                            : "بعضی‌ها نیامدند؛ بعداً دوباره تلاش می‌شود");
+                    }
+                });
+            });
+        }
+        return offer;
+    }
+
     // ---------- the child's turn ----------
 
     private TextView continueButton;
@@ -251,6 +327,9 @@ public class LessonFragment extends BaseFragment {
         LinearLayout content = rootView.findViewById(R.id.lesson_content);
         content.removeAllViews();
         continueButton = null;
+
+        View offer = voiceDownloadOffer(step);
+        if (offer != null) content.addView(offer, UiKit.marginParams(requireContext(), 0, 10));
 
         switch (step.kind) {
             case TEACH: {

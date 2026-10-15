@@ -1,9 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- the narration clips and the worksheets are fetched from the teacher's host -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      Announcements: a new worksheet, a new chapter, the online exam. Asked for only when there
+      is actually a notice to show, never on a first launch (see ui/Announcements).
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- the subscription is bought through Bazaar's own payment screen -->
+    <uses-permission android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR" />
+
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false" />
+
+    <!--
+      Since Android 11 an app cannot even see another package unless it says so here. Without
+      this the bind to Bazaar fails with no error worth reading, and every purchase looks like a
+      connection problem.
+    -->
+    <queries>
+        <package android:name="com.farsitel.bazaar" />
+    </queries>
 
     <application
         android:name=".HooHooApp"
@@ -12,7 +34,23 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.HooHooFarsi">
+
+        <!--
+          Lets «باز کن» pass a downloaded worksheet to a PDF reader. Since Android 7 a file://
+          Uri handed to another app throws, so the sheet goes out as a content:// Uri instead,
+          read-only and for that one file.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.sheets"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <activity
             android:name=".MainActivity"
