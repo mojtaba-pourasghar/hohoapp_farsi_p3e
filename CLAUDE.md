@@ -383,7 +383,7 @@ python3 tools/make_manifest.py
 
 هر خط: `کلید | متن | تلفظ با اعراب`. `tts/NarrationText` ستون سوم را می‌خواند؛ هر وقت
 `<key>.ogg` در `res/raw` گذاشته شود، همان پخش می‌شود. ساخت صدا روی رانر: ورک‌فلوی `voice.yml`
-یا تیکِ `make_voice` در بیلدِ دستی (`fa-IR-DilaraNeural`). جدول اعراب در `tools/vowels.py`.
+یا تیکِ `make_voice` در بیلدِ دستی (`fa-IR-DilaraNeural`). جدول اعراب در `tools/vowels.py` (جدولِ ریاضی) و `tools/vowels_farsi.py` (واژه‌های کتاب فارسی) — **۱۰۰٪** واژه‌ها اعراب دارند؛ `python3 tools/check_vowels.py` واژه‌ی بی‌اعرابِ تازه را نشان می‌دهد.
 کلیدهای مرورِ بخش (`chNN_sN_intro/done`) پویا هستند و در منیفست نیستند.
 
 

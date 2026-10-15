@@ -1082,3 +1082,12 @@ VOWELS = {
     "گلدان‌های": "گُلدان‌های", "نادیده‌اش": "نادیده‌اَش", "خیابان": "خیابان",
     "بدوزی": "بِدوزی", "دکمه‌ی": "دُکمه‌ی", "اضافه‌ای": "اِضافه‌ای", "ام": "اَم",
     "‌ها": "‌ها", "شنا": "شِنا", "آبی‌ها": "آبی‌ها",}
+
+# the words of the Persian book (هوهو فارسی) — kept in their own file, merged here
+try:
+    from vowels_farsi import FARSI
+except ImportError:  # run from another directory without tools/ on the path
+    import importlib.util as _u, os as _os
+    _s = _u.spec_from_file_location("vowels_farsi", _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "vowels_farsi.py"))
+    _m = _u.module_from_spec(_s); _s.loader.exec_module(_m); FARSI = _m.FARSI
+VOWELS.update(FARSI)
