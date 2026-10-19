@@ -1581,31 +1581,33 @@ if (fs.existsSync(dist)) {
   app.get("*", (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
-app.listen(PORT, "127.0.0.1", () => {
+const server = app.listen(PORT, "127.0.0.1", () => {
   console.log(`\n  استودیوی صداگذاری هوهو → http://127.0.0.1:${PORT}\n`);
   console.log(`  منیفست : ${config.manifestPath}`);
   console.log(`  خروجی  : ${config.outDir}`);
   console.log(`  صدا    : ${config.speaker}`);
   console.log(`  سرویس  : ${config.endpoint === "long" ? "avasho-large" : "avasho (متنِ کوتاه)"}\n`);
   if (migrated) {
+    say("warn", migrated);
+    saveConfig();
+  }
+  if (config.schedule.enabled) applySchedule();
+});
 
 // اگر یک نمونه‌ی قبلی هنوز روی همین پورت باز است، به‌جای استک‌تریسِ زشت، پیامِ فارسیِ
 // راهنما چاپ می‌کنیم تا کاربر ترمینال قبلی را ببندد یا همان را نگه دارد.
+// (هر دو استودیو — ریاضی و فارسی — پیش‌فرض روی 5174 هستند؛ برای اجرای همزمان: PORT=5175)
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {
     console.error(
-      `\nپورت ${PORT} اشغال است — یک نمونه‌ی دیگر از سرور هنوز باز است.` +
+      `\nپورت ${PORT} اشغال است — یک نمونه‌ی دیگر از سرور (شاید استودیوی ریاضی یا فارسی) هنوز باز است.` +
       `\nراه‌حل: ترمینالِ قبلیِ «npm start» را ببندید (Ctrl+C)، یا در یک ترمینالِ جدا:` +
       `\n  netstat -ano | findstr :${PORT}` +
       `\n  taskkill /PID <PID> /F` +
+      `\nیا هر دو را با هم باز نگه دارید:  set PORT=5175 && npm start` +
       `\nسپس دوباره «npm start» را بزنید.\n`
     );
     process.exit(1);
   }
   throw err;
-});
-    say("warn", migrated);
-    saveConfig();
-  }
-  if (config.schedule.enabled) applySchedule();
 });
