@@ -120,6 +120,8 @@ public class ParentPanelFragment extends BaseFragment {
             settings.addView(buildSettingRow(SETTING_LABELS[i], i, s));
         }
         settings.addView(buildNoticesRow());
+        settings.addView(buildNoticeStatusRow());
+        settings.addView(buildBackgroundRow());
         settings.addView(buildVoiceRow());
         settings.addView(buildSubscriptionRow());
 
@@ -245,7 +247,10 @@ public class ParentPanelFragment extends BaseFragment {
         LinearLayout labels = UiKit.column(requireContext());
         labels.addView(UiKit.text(requireContext(), "خبرها و اعلان‌ها", 13.5f, R.color.text_primary, true));
         labels.addView(UiKit.text(requireContext(),
-            "درس و کاربرگِ تازه، و خبرِ آزمون آنلاین", 11.5f, R.color.text_muted, false));
+            Notices.sealReady(requireContext())
+                ? "درس و کاربرگِ تازه، و خبرِ آزمون آنلاین"
+                : "⚠ کلیدِ امضا در این نسخه نیست — هیچ خبری نمایش داده نمی‌شود",
+            11.5f, R.color.text_muted, false));
         row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView mark = UiKit.text(requireContext(), on ? "روشن" : "خاموش", 13f,
@@ -253,10 +258,86 @@ public class ParentPanelFragment extends BaseFragment {
         row.addView(mark);
         row.setOnClickListener(v -> {
             Notices.allow(requireContext(), !on);
-            if (!on) Announcements.askIfUseful(requireActivity());
+            // «خاموش» has to reach the background check too, or the phone keeps fetching and
+            // ringing for a parent who switched it off
+            if (on) com.hoohoofarsi.app.work.NoticeWork.cancel(requireContext());
+            else {
+                com.hoohoofarsi.app.work.NoticeWork.schedule(requireContext());
+                Announcements.askIfUseful(requireActivity());
+            }
             View root = getView();
             if (root != null) render(root);
         });
+        UiKit.tapSound(row);
+        return row;
+    }
+
+    /**
+     * «آخرین بررسیِ خبرها» — the one place that says what happened.
+     *
+     * Everything about the notices fails quietly on purpose: a file whose signature does not
+     * verify is thrown away without telling the child, which is right, and leaves «I published
+     * something and nothing appeared» with no way to answer it. This row answers it, and tapping
+     * it looks again right now instead of waiting for the next quarter of an hour.
+     */
+    private View buildNoticeStatusRow() {
+        String status = Notices.lastCheck(requireContext());
+
+        LinearLayout row = UiKit.row(requireContext());
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = UiKit.dp(requireContext(), 12);
+        row.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(row, requireContext(), R.color.bg_card, R.color.border_card);
+        row.setLayoutParams(UiKit.marginParams(requireContext(), 10, 0));
+
+        LinearLayout labels = UiKit.column(requireContext());
+        labels.addView(UiKit.text(requireContext(), "آخرین بررسیِ خبرها", 13.5f,
+            R.color.text_primary, true));
+        TextView note = UiKit.text(requireContext(),
+            status.isEmpty() ? "هنوز بررسی نشده" : status, 11.5f, R.color.text_muted, false);
+        note.setLineSpacing(UiKit.dp(requireContext(), 3), 1f);
+        labels.addView(note);
+        labels.addView(UiKit.text(requireContext(),
+            fa(Notices.countHere(requireContext())) + " خبر روی دستگاه",
+            11.5f, R.color.text_muted, false));
+        row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(UiKit.text(requireContext(), "بررسی کن ↻", 13f, R.color.teal_dark, true));
+
+        row.setOnClickListener(v -> {
+            note.setText("در حال بررسی…");
+            Notices.forget(requireContext());      // ask for the file again, not «همان‌هاست»
+            Notices.refresh(requireContext(), () -> {});
+            View root = getView();
+            if (root != null) root.postDelayed(() -> {
+                if (isAdded() && getView() != null) render(getView());
+            }, 2500);
+        });
+        UiKit.tapSound(row);
+        return row;
+    }
+
+    /**
+     * «خبر وقتی برنامه بسته است» — shown only while the system may still hold the background
+     * check back. Battery optimisation is the usual reason a closed app hears nothing for hours,
+     * and a parent who said «no» to the box once has no other way back to it.
+     */
+    private View buildBackgroundRow() {
+        LinearLayout row = UiKit.row(requireContext());
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = UiKit.dp(requireContext(), 12);
+        row.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(row, requireContext(), R.color.bg_card, R.color.border_card);
+        row.setLayoutParams(UiKit.marginParams(requireContext(), 10, 0));
+
+        LinearLayout labels = UiKit.column(requireContext());
+        labels.addView(UiKit.text(requireContext(), "خبر وقتی برنامه بسته است", 13.5f,
+            R.color.text_primary, true));
+        labels.addView(UiKit.text(requireContext(),
+            "صرفه‌جوییِ باتری ممکن است خبرها را ساعت‌ها عقب بیندازد",
+            11.5f, R.color.text_muted, false));
+        row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(UiKit.text(requireContext(), "اجازه بده ›", 13f, R.color.teal_dark, true));
+        row.setOnClickListener(v -> Announcements.askBackgroundAgain(requireActivity()));
         UiKit.tapSound(row);
         return row;
     }

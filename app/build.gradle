@@ -104,4 +104,8 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.fragment:fragment:1.8.2'
     implementation 'androidx.core:core:1.13.1'
+
+    // Looking for news while the app is closed — the one job a push SDK would have done, done
+    // by the system's own scheduler instead. See work/NoticeWork.
+    implementation 'androidx.work:work-runtime:2.9.1'
 }

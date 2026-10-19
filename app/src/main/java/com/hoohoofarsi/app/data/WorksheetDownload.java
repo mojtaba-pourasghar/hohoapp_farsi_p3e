@@ -1,4 +1,4 @@
-package com.hoohoofarsi.app.data;
+﻿package com.hoohoofarsi.app.data;
 
 import android.content.Context;
 import android.os.Handler;
@@ -16,6 +16,7 @@ import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -28,14 +29,18 @@ import java.util.List;
  * The catalogue is the index.json that tools/voice-studio writes beside the sheets:
  *
  *   { "baseUrl": "http://…/karbarg/",
- *     "sheets": [ { "title": "کاربرگ جمع و تفریق", "chapter": 5, "note": "۲ صفحه",
- *                   "file": "jam-tafrigh/sheet.pdf", "free": true } ] }
+ *     "sheets": [ { "title": "کاربرگ فارسی", "chapter": 5, "note": "۲ صفحه",
+ *                   "file": "jam-tafrigh/sheet.pdf", "free": true, "order": 3 } ] }
  *
  * An older flat array of objects carrying a whole «url» each still reads, so nothing breaks if
  * the file is written by hand.
  *
- * «chapter» is the index used everywhere else in the app (فصل ۱ is 0) and may be left out for a
+ * «chapter» is the index used everywhere else in the app (درس ۱ is 0) and may be left out for a
  * sheet that belongs to no single chapter.
+ *
+ * «order» is what the teacher wants them in, lowest first, and the app shows them in exactly
+ * that order rather than in whatever order the folder happened to be read. A sheet without one
+ * keeps its place in the file, after everything that has been given a number.
  *
  * The list is fetched from the host, then kept on the device: the screen opens instantly from
  * the cached copy and is refreshed in the background whenever there is a connection. A copy also
@@ -65,12 +70,21 @@ public final class WorksheetDownload implements Access.Sheet {
      */
     public final boolean free;
 
+    /** Where the teacher wants it in the list. Lower comes first. */
+    public final int order;
+
     public WorksheetDownload(String title, String note, String url, int chapter, boolean free) {
+        this(title, note, url, chapter, free, Integer.MAX_VALUE);
+    }
+
+    public WorksheetDownload(String title, String note, String url, int chapter, boolean free,
+                             int order) {
         this.title = title;
         this.note = note;
         this.url = url;
         this.chapter = chapter;
         this.free = free;
+        this.order = order;
     }
 
     @Override
@@ -169,11 +183,21 @@ public final class WorksheetDownload implements Access.Sheet {
                 if (title.isEmpty() || url.isEmpty()) continue;
                 out.add(new WorksheetDownload(title, o.optString("note", "").trim(), url,
                     o.has("chapter") ? o.optInt("chapter", -1) : -1,
-                    o.optBoolean("free", false)));
+                    o.optBoolean("free", false),
+                    // no number means «after the numbered ones», not «first»
+                    o.has("order") ? o.optInt("order", Integer.MAX_VALUE) : Integer.MAX_VALUE));
             }
         } catch (Exception ignored) {
             // a malformed catalogue must not take the screen down; it just shows nothing
         }
+
+        // The teacher's order, and a stable tie-break so two sheets with the same number — or
+        // none at all — never swap places between one opening of the screen and the next.
+        final List<WorksheetDownload> asRead = new ArrayList<>(out);
+        Collections.sort(out, (a, b) -> {
+            if (a.order != b.order) return Integer.compare(a.order, b.order);
+            return Integer.compare(asRead.indexOf(a), asRead.indexOf(b));
+        });
         return out;
     }
 

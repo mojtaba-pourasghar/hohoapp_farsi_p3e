@@ -71,6 +71,23 @@ public class MapFragment extends BaseFragment {
         LinearLayout holder = view.findViewById(R.id.map_notices);
         if (holder == null) return;
         holder.removeAllViews();
+        // Every notice is now a dialog of its own, shown one after another by MainActivity —
+        // with its picture, which these cards never had. A second, text-only copy of the same
+        // news sitting above the map only looked like a dialog that had failed to open.
+        holder.setVisibility(View.GONE);
+        if (SHOW_CARDS) renderNoticeCards(view, holder);
+    }
+
+    /** The activity shows the dialog; this keeps the card list beside it honest. */
+    public void refreshNotices() {
+        View root = getView();
+        if (root != null) renderNotices(root);
+    }
+
+    /** The old in-page cards, kept switched off. */
+    private static final boolean SHOW_CARDS = false;
+
+    private void renderNoticeCards(View view, LinearLayout holder) {
         List<Notices.Notice> notices = Notices.unseen(requireContext());
         holder.setVisibility(notices.isEmpty() ? View.GONE : View.VISIBLE);
 
@@ -102,10 +119,10 @@ public class MapFragment extends BaseFragment {
             UiKit.tapSound(ok);
             card.addView(ok, UiKit.marginParams(requireContext(), 10, 0));
 
-            if (!notice.screen.isEmpty()) {
+            if (!notice.destination().isEmpty()) {
                 card.setOnClickListener(v -> {
                     try {
-                        Screen target = Screen.valueOf(notice.screen);
+                        Screen target = Screen.valueOf(notice.destination());
                         Notices.markSeen(requireContext(), notice.id);
                         nav().go(target);
                     } catch (IllegalArgumentException unknown) {

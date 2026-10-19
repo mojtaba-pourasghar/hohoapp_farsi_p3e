@@ -5,6 +5,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -38,6 +39,32 @@ public final class Net {
             return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * The exact bytes of a file, or null when it could not be fetched.
+     *
+     * Anything signed must be checked against these and not against a string rebuilt from
+     * them: a signature covers bytes, and {@link #text} normalises line endings on the way
+     * in — which silently breaks verification of a file that was signed byte for byte.
+     */
+    public static byte[] bytes(String url) {
+        HttpURLConnection connection = null;
+        try {
+            connection = open(url);
+            if (connection.getResponseCode() / 100 != 2) return null;
+            try (InputStream in = connection.getInputStream();
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
+                return out.toByteArray();
+            }
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
         }
     }
 

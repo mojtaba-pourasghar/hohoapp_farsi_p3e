@@ -27,10 +27,14 @@ import com.hoohoofarsi.app.billing.Receipt;
 import com.hoohoofarsi.app.data.AppState;
 import com.hoohoofarsi.app.tts.NarrationText;
 import com.hoohoofarsi.app.tts.SoundManager;
+import com.hoohoofarsi.app.data.NoticeWatcher;
 import com.hoohoofarsi.app.data.Notices;
+import com.hoohoofarsi.app.work.NoticeWork;
 import com.hoohoofarsi.app.tts.VoiceStore;
 import com.hoohoofarsi.app.ui.Announcements;
 import com.hoohoofarsi.app.ui.BaseFragment;
+import com.hoohoofarsi.app.ui.NoticeDialog;
+import com.hoohoofarsi.app.ui.UpdateDialog;
 import com.hoohoofarsi.app.ui.Navigator;
 import com.hoohoofarsi.app.ui.Screen;
 import com.hoohoofarsi.app.ui.UiKit;
@@ -84,6 +88,11 @@ public class MainActivity extends AppCompatActivity implements Navigator {
 
     private final Stack<Step> backStack = new Stack<>();
     private Bundle currentArgs;
+
+    /** Today's notice while it is on screen, or null. One slot: a second one waits its turn. */
+    private android.app.Dialog noticeDialog;
+    /** A tray tap that points at no screen: the notice to open once the app is up. */
+    private String requestedNotice;
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -147,15 +156,15 @@ public class MainActivity extends AppCompatActivity implements Navigator {
         bindNavItem(navExam, R.drawable.ic_target, "آزمون", () -> go(Screen.EXAM_INDEX));
         bindNavItem(navParent, R.drawable.ic_shield, "والدین", this::goParent);
 
-        // The news. Whatever is already on the device is shown at once; the host is asked for
-        // more in the background, and anything new that arrives goes to the phone's tray so it
-        // can bring the child back tomorrow rather than only when they happen to open the app.
+        // The news. There is no push service, so the app looks rather than being told: a few
+        // minutes apart while it is open, and through the system's scheduler while it is not.
+        // Whatever is already on the device is shown at once.
         Announcements.post(this);
-        Notices.refresh(this, () -> {
-            Announcements.post(this);
-            Announcements.askIfUseful(this);
-        });
         Announcements.askIfUseful(this);
+        if (Notices.allowed(this)) NoticeWork.schedule(this);
+        // for phones where notifications were already allowed (Android 12 and below, or a yes
+        // given earlier) — asked once, and a no is final
+        Announcements.askBackgroundOnce(this);
 
         if (savedInstanceState == null) {
             Screen opened = screenFromNotice(getIntent());
@@ -200,6 +209,23 @@ public class MainActivity extends AppCompatActivity implements Navigator {
         setIntent(intent);
         Screen opened = screenFromNotice(intent);
         if (opened != null) go(opened);
+        else showNoticeIfDue();         // a tapped notice with nowhere to go shows as its card
+    }
+    /**
+     * The user just answered the notification permission box. A «yes» means the notices that
+     * were waiting on that answer go to the tray now instead of at the next check.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == Announcements.PERMISSION_REQUEST) {
+            Announcements.post(this);
+            showNoticeIfDue();
+            // notifications are on now; the next thing standing between the news and a closed
+            // app is battery optimisation
+            Announcements.askBackgroundOnce(this);
+        }
     }
 
     /**
@@ -209,7 +235,15 @@ public class MainActivity extends AppCompatActivity implements Navigator {
     private Screen screenFromNotice(Intent intent) {
         if (intent == null) return null;
         String id = intent.getStringExtra("notice_id");
-        if (id != null) Notices.markSeen(this, id);
+        if (id != null) {
+            Notices.markSeen(this, id);
+            String link = intent.getStringExtra("notice_link");
+            if (link != null && !link.isEmpty()) NoticeDialog.openLink(this, link);
+            if (intent.getBooleanExtra("notice_show", false)) requestedNotice = id;
+            intent.removeExtra("notice_id");
+            intent.removeExtra("notice_link");
+            intent.removeExtra("notice_show");
+        }
         String name = intent.getStringExtra("notice_screen");
         if (name == null || name.isEmpty()) return null;
         try {
@@ -222,15 +256,90 @@ public class MainActivity extends AppCompatActivity implements Navigator {
     @Override
     protected void onResume() {
         super.onResume();
+        NoticeWatcher.start(this, () -> {
+            Announcements.post(this);
+            Announcements.askIfUseful(this);
+            showNoticeIfDue();
+        }, () -> {
+            Announcements.post(this);
+            showNoticeIfDue();
+        });
+        showNoticeIfDue();
         SoundManager sound = SoundManager.get();
         if (sound != null) sound.startMusic();
     }
 
     @Override
     protected void onPause() {
+        if (noticeDialog != null) {
+            noticeDialog.dismiss();
+            noticeDialog = null;
+        }
+        NoticeWatcher.stop();
+        if (Notices.allowed(this)) NoticeWork.once(this);
         SoundManager sound = SoundManager.get();
         if (sound != null) sound.pauseMusic();
         super.onPause();
+    }
+
+    /**
+     * Puts today's notice up, if this is a screen it is allowed on.
+     *
+     * The ordinary notice waits for the map. A notice the teacher marked «هر جای برنامه»
+     * does not wait. The splash and the parent gate are still off limits.
+     */
+    private void showNoticeIfDue() {
+        if (noticeDialog != null) return;
+        if (currentScreen == null || currentScreen == Screen.SPLASH
+            || currentScreen == Screen.PARENT_GATE) return;
+
+        if (requestedNotice != null) {
+            Notices.Notice asked = Notices.find(this, requestedNotice);
+            requestedNotice = null;
+            if (asked != null) {
+                Notices.shownToday(this, asked.id);
+                putUpNotice(asked);
+                return;
+            }
+        }
+
+        if (currentScreen == Screen.MAP) {
+            noticeDialog = UpdateDialog.showIfDue(this);
+            if (noticeDialog != null) {
+                noticeDialog.setOnDismissListener(d -> {
+                    noticeDialog = null;
+                    if (navBar != null) navBar.postDelayed(() -> {
+                        if (getLifecycle().getCurrentState().isAtLeast(
+                                androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                            showNoticeIfDue();
+                        }
+                    }, 350);
+                });
+                return;
+            }
+        }
+
+        Notices.Notice due = Notices.dueNow(this, currentScreen == Screen.MAP);
+        if (due == null) return;
+
+        Notices.shownToday(this, due.id);
+        putUpNotice(due);
+    }
+
+    private void putUpNotice(Notices.Notice notice) {
+        noticeDialog = NoticeDialog.show(this, notice, () -> {
+            noticeDialog = null;
+            Notices.markSeen(this, notice.id);
+            Notices.shownToday(this, notice.id);
+            Fragment showing = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+            if (showing instanceof MapFragment) ((MapFragment) showing).refreshNotices();
+            if (navBar != null) navBar.postDelayed(() -> {
+                if (getLifecycle().getCurrentState().isAtLeast(
+                        androidx.lifecycle.Lifecycle.State.RESUMED)) {
+                    showNoticeIfDue();
+                }
+            }, Notices.GAP_MS + 500);
+        });
     }
 
     /**
@@ -407,6 +516,7 @@ public class MainActivity extends AppCompatActivity implements Navigator {
         }
         currentScreen = screen;
         updateNavHighlight(screen);
+        if (navBar != null) navBar.post(this::showNoticeIfDue);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.hoohoofarsi.app.data;
+﻿package com.hoohoofarsi.app.data;
 
 import android.content.Context;
 import android.os.Handler;
@@ -21,7 +21,11 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
- * The nationwide online exam — one paper, sat by every child on the same evening.
+ * The nationwide online exams — each one paper, sat by every child at the same time.
+ *
+ * exam.json now carries every active exam the studio published: `{ "exams": [ {…}, {…} ] }`,
+ * each shaped as below. The older single-exam shape is still read, so a phone whose cache
+ * predates the change keeps working until its next fetch.
  *
  * Unlike the practice sets, these questions are not generated: a real exam has to be the same
  * paper for everyone, so it comes down from the host as a file the teacher writes. Nothing about
@@ -111,36 +115,102 @@ public final class OnlineExam {
     // ── reading it ───────────────────────────────────────────────────────────
 
     /**
-     * Hands back the exam: the cached copy first if there is one, then the fresh one from the
-     * host if it can be reached. `whenReady` may therefore run twice — once fast, once right —
-     * and always on the main thread.
+     * Hands back every exam on the host: the cached list first if there is one, then the fresh
+     * one if the host can be reached. `whenReady` may therefore run twice — once fast, once
+     * right — and always on the main thread. Never handed null; «no exams» is an empty list.
      */
-    public static void load(Context context, Consumer<OnlineExam> whenReady) {
+    public static void loadAll(Context context, Consumer<List<OnlineExam>> whenReady) {
         Context app = context.getApplicationContext();
         String cached = readCache(app);
-        if (cached != null) {
-            OnlineExam fromDisk = parse(cached);
-            if (fromDisk != null) whenReady.accept(fromDisk);
-        }
+        List<OnlineExam> fromDisk = parseAll(cached);
+        if (fromDisk != null) whenReady.accept(fromDisk);
         if (!Net.online(app)) {
-            if (cached == null) whenReady.accept(new OnlineExam());
+            if (fromDisk == null) whenReady.accept(new ArrayList<>());
             return;
         }
         IO.execute(() -> {
             String fresh = Net.text(URL);
-            OnlineExam parsed = fresh == null ? null : parse(fresh);
+            List<OnlineExam> parsed = parseAll(fresh);
             if (parsed != null) writeCache(app, fresh);
             MAIN.post(() -> {
                 if (parsed != null) whenReady.accept(parsed);
-                else if (cached == null) whenReady.accept(new OnlineExam());
+                else if (fromDisk == null) whenReady.accept(new ArrayList<>());
             });
         });
     }
 
-    static OnlineExam parse(String json) {
+    /** Every exam on the device, without asking the host. Never null. */
+    public static List<OnlineExam> cachedAll(Context context) {
+        List<OnlineExam> fromDisk = parseAll(readCache(context.getApplicationContext()));
+        return fromDisk == null ? new ArrayList<>() : fromDisk;
+    }
+
+    /** The cached exam with this {@link #key()}, or null if the host no longer lists it. */
+    public static OnlineExam find(Context context, String key) {
+        if (key == null) return null;
+        for (OnlineExam exam : cachedAll(context)) {
+            if (key.equals(exam.key())) return exam;
+        }
+        return null;
+    }
+
+    /**
+     * Fetches and stores the list on the calling thread — for the background check, which has
+     * its own thread and nothing to do but wait. Hands back whatever is current afterwards.
+     */
+    public static List<OnlineExam> loadNow(Context context) {
+        Context app = context.getApplicationContext();
+        if (Net.online(app)) {
+            String fresh = Net.text(URL);
+            List<OnlineExam> parsed = parseAll(fresh);
+            if (parsed != null) {
+                writeCache(app, fresh);
+                return parsed;
+            }
+        }
+        return cachedAll(app);
+    }
+
+    /**
+     * Reads exam.json in either shape: the list the studio publishes now — `{ "exams": [ … ] }`
+     * — or the single exam an older studio wrote, which is still what a phone that has not
+     * fetched since may have in its cache. Null only when the text is not readable at all.
+     */
+    static List<OnlineExam> parseAll(String json) {
+        if (json == null) return null;
         try {
-            JSONObject o = new JSONObject(json);
-            OnlineExam exam = new OnlineExam();
+            JSONObject root = new JSONObject(json);
+            List<OnlineExam> out = new ArrayList<>();
+            JSONArray arr = root.optJSONArray("exams");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject o = arr.optJSONObject(i);
+                    if (o == null) continue;
+                    OnlineExam exam = parse(o);
+                    if (exam.active) out.add(exam);
+                }
+            } else {
+                OnlineExam exam = parse(root);
+                if (exam.active) out.add(exam);
+            }
+            return out;
+        } catch (Exception broken) {
+            return null;     // a half-written file on the host must not empty the screen
+        }
+    }
+
+    static OnlineExam parse(String json) {
+        if (json == null) return null;
+        try {
+            return parse(new JSONObject(json));
+        } catch (Exception broken) {
+            return null;
+        }
+    }
+
+    private static OnlineExam parse(JSONObject o) {
+        OnlineExam exam = new OnlineExam();
+        {
             exam.active = o.optBoolean("active", false);
             exam.id = o.optString("id", "");
             exam.title = o.optString("title", exam.title);
@@ -169,10 +239,8 @@ public final class OnlineExam {
                     exam.questions.add(question);
                 }
             }
-            return exam;
-        } catch (Exception broken) {
-            return null;     // a half-written file on the host must not empty the screen
         }
+        return exam;
     }
 
     private static File cacheFile(Context context) {

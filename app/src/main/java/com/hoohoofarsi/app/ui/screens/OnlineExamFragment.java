@@ -1,4 +1,4 @@
-package com.hoohoofarsi.app.ui.screens;
+﻿package com.hoohoofarsi.app.ui.screens;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,6 +20,7 @@ import com.hoohoofarsi.app.data.OnlineExam;
 import com.hoohoofarsi.app.ui.BaseFragment;
 import com.hoohoofarsi.app.ui.Screen;
 import com.hoohoofarsi.app.ui.UiKit;
+import com.hoohoofarsi.app.work.ExamReminders;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,12 @@ import static com.hoohoofarsi.app.data.PersianDigits.fa;
  */
 public class OnlineExamFragment extends BaseFragment {
 
-    private OnlineExam exam = new OnlineExam();
+    /** Every exam the host lists right now, in the order the studio published them. */
+    private List<OnlineExam> all = new ArrayList<>();
+    /** The exam open on screen, or null while the list of exams is showing. */
+    private OnlineExam exam = null;
+    /** Which exam was open, kept by key so a fresh fetch can find it again. */
+    private String chosenKey = null;
     private boolean loaded = false;
 
     private LinearLayout list;
@@ -80,13 +86,40 @@ public class OnlineExamFragment extends BaseFragment {
         list = view.findViewById(R.id.list_container);
 
         render();
-        OnlineExam.load(requireContext(), fresh -> {
+        OnlineExam.loadAll(requireContext(), fresh -> {
             if (!isAdded()) return;
-            exam = fresh;
+            all = fresh;
             loaded = true;
-            restoreAnswers();
+            if (chosenKey != null) {
+                // the fresh copy of the exam already open; gone from the host = back to the list
+                OnlineExam again = null;
+                for (OnlineExam e : all) if (chosenKey.equals(e.key())) again = e;
+                if (again == null) {
+                    close();
+                } else {
+                    exam = again;
+                    if (!sitting) restoreAnswers();
+                }
+            }
             render();
         });
+    }
+
+    private void open(OnlineExam which) {
+        exam = which;
+        chosenKey = which.key();
+        sitting = false;
+        at = 0;
+        restoreAnswers();
+        render();
+    }
+
+    private void close() {
+        exam = null;
+        chosenKey = null;
+        sitting = false;
+        at = 0;
+        answers.clear();
     }
 
     @Override
@@ -104,8 +137,14 @@ public class OnlineExamFragment extends BaseFragment {
     /** Back steps through the paper before it leaves it. */
     @Override
     public boolean onBackPressed() {
-        if (!sitting || at <= 0) return false;
-        at--;
+        if (exam == null) return false;               // on the list: leave the screen
+        if (sitting && at > 0) {                      // mid-paper: one question back
+            at--;
+            render();
+            return true;
+        }
+        // answers are already kept on every tap, so stepping out loses nothing
+        close();
         render();
         return true;
     }
@@ -122,8 +161,16 @@ public class OnlineExamFragment extends BaseFragment {
             subheading.setText("در حال گرفتن خبرِ آزمون…");
             return;
         }
-        if (!exam.announced()) {
+        if (all.isEmpty()) {
             showNothingPlanned();
+            return;
+        }
+        if (exam == null) {
+            showList(now);
+            return;
+        }
+        if (!exam.announced()) {
+            showNoQuestions();
             return;
         }
         if (done()) {
@@ -144,6 +191,56 @@ public class OnlineExamFragment extends BaseFragment {
             "وقتی آزمونِ تازه‌ای گذاشته شود، همین‌جا و با یک اعلان به تو خبر می‌دهیم. تا آن موقع "
                 + "می‌توانی با آزمون‌های خودِ برنامه تمرین کنی.", R.color.border_card));
         list.addView(link("رفتن به آزمون‌های تمرینی", () -> nav().go(Screen.EXAM_INDEX)));
+    }
+
+    /** Every exam on the host, one card each — where it stands for this child, and a way in. */
+    private void showList(long now) {
+        heading.setText("🏆 آزمون‌های آنلاین");
+        subheading.setText(fa(all.size()) + " آزمون — روی هر کدام بزن تا ببینی و ثبت‌نام کنی.");
+
+        for (OnlineExam e : all) {
+            StringBuilder body = new StringBuilder();
+            if (!e.dateFa.isEmpty()) body.append("📅 ").append(e.dateFa);
+            if (!e.timeFa.isEmpty()) {
+                if (body.length() > 0) body.append("  ");
+                body.append("⏰ ").append(e.timeFa);
+            }
+            if (body.length() > 0) body.append("\n");
+            body.append("📝 ").append(fa(e.questions.size())).append(" سؤال، ")
+                .append(fa(e.durationMinutes)).append(" دقیقه");
+            body.append("\n").append(statusOf(e, now));
+
+            View card = card("🏆 " + e.title, body.toString(),
+                e.canStart(now) ? R.color.orange_border : R.color.teal_border);
+            card.setOnClickListener(v -> open(e));
+            UiKit.tapSound(card);
+            list.addView(card);
+        }
+        list.addView(link("رفتن به آزمون‌های تمرینی", () -> nav().go(Screen.EXAM_INDEX)));
+    }
+
+    /** One line on where this exam stands for this child. */
+    private String statusOf(OnlineExam e, long now) {
+        if (!e.announced()) return "⌛ هنوز سؤالی ندارد";
+        if (state().getBoolean(e.key() + "_done", false)) {
+            return "🌟 داده‌ای — امتیاز: " + fa(state().getInt(e.key() + "_score", 0))
+                + " از " + fa(e.totalPoints());
+        }
+        if (e.over(now)) return "تمام شد";
+        if (e.canStart(now)) return "🚀 همین حالا باز است!";
+        boolean signedUp = state().getBoolean(e.key() + "_registered", false);
+        if (signedUp) return "✓ ثبت‌نام کرده‌ای — ⏳ " + remaining(e.startsAt - now) + " مانده";
+        if (e.registrationOpen(now)) return "✏️ ثبت‌نام باز است";
+        return "ثبت‌نام هنوز باز نشده";
+    }
+
+    /** An exam the teacher has put up but not written the questions for yet. */
+    private void showNoQuestions() {
+        heading.setText("🏆 " + exam.title);
+        subheading.setText(exam.description.isEmpty() ? "" : exam.description);
+        list.addView(card("⌛ هنوز سؤالی ندارد",
+            "سؤال‌های این آزمون هنوز گذاشته نشده. کمی بعد دوباره سر بزن.", R.color.border_card));
+        list.addView(link("برگرد به فهرستِ آزمون‌ها", () -> { close(); render(); }));
     }
 
     /** Before the evening: what it is, when it is, and the sign-up. */
@@ -177,6 +274,7 @@ public class OnlineExamFragment extends BaseFragment {
             }
             list.addView(button("🚀 ورود و شروع آزمون", R.color.orange, () -> {
                 state().setBoolean(exam.key() + "_registered", true);
+                ExamReminders.refresh(requireContext());
                 sitting = true;
                 at = firstUnanswered();
                 render();
@@ -195,7 +293,12 @@ public class OnlineExamFragment extends BaseFragment {
         } else if (exam.registrationOpen(now)) {
             list.addView(button("✏️ ثبت‌نام در آزمون", R.color.teal, () -> {
                 state().setBoolean(exam.key() + "_registered", true);
-                Toast.makeText(requireContext(), "ثبت‌نامت انجام شد!", Toast.LENGTH_SHORT).show();
+                // set the countdown now rather than waiting for the next background check: a
+                // child who signs up an hour before the exam must still get «نیم ساعت مانده»
+                ExamReminders.refresh(requireContext());
+                Toast.makeText(requireContext(),
+                    "ثبت‌نامت انجام شد! نزدیکِ آزمون روی گوشی یادت می‌اندازیم.",
+                    Toast.LENGTH_LONG).show();
                 render();
             }));
         } else {
@@ -305,7 +408,7 @@ public class OnlineExamFragment extends BaseFragment {
             list.addView(card((right ? "✓ " : "✗ ") + "سؤال " + fa(i + 1) + " — " + q.text, body,
                 right ? R.color.teal_border : R.color.orange_border));
         }
-        list.addView(link("برگرد به آزمون‌ها", () -> nav().go(Screen.EXAM_INDEX)));
+        list.addView(link("برگرد به فهرستِ آزمون‌ها", () -> { close(); render(); }));
     }
 
     // ── keeping the paper ────────────────────────────────────────────────────
@@ -323,6 +426,7 @@ public class OnlineExamFragment extends BaseFragment {
         }
         state().setInt(exam.key() + "_score", score);
         state().setBoolean(exam.key() + "_done", true);
+        ExamReminders.clear(requireContext(), exam.key());   // handed in; nothing left to remind
         sitting = false;
         render();
     }

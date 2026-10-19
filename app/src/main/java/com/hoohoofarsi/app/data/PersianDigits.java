@@ -21,6 +21,20 @@ public final class PersianDigits {
         return fa((long) n);
     }
 
+    /**
+     * The Persian digits of any text that already has its own shape — a version like «1.27.0»,
+     * where the dots matter and the number is not one number.
+     */
+    public static String fa(String text) {
+        if (text == null) return "";
+        StringBuilder out = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            out.append(c >= '0' && c <= '9' ? FA[c - '0'] : c);
+        }
+        return out.toString();
+    }
+
     /** Converts a string containing Persian digits back to Latin digits. */
     public static String en(String s) {
         StringBuilder out = new StringBuilder();

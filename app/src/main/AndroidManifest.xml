@@ -11,6 +11,19 @@
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+      The exam countdown is five alarms, and AlarmManager forgets every alarm on a reboot. A
+      phone restarted on the morning of the exam would otherwise never ring.
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--
+      News with the app closed. Without being let off battery optimisation the system may hold
+      the background check back for hours. Asked once, and only when there is news to deliver
+      (see ui/Announcements.askBackgroundOnce); the parent panel can ask again.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <!-- the subscription is bought through Bazaar's own payment screen -->
     <uses-permission android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR" />
 
@@ -63,6 +76,39 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!--
+          A tapped notice with a link: opens the link without opening the app. Its own empty
+          task affinity and no history, so it never shows in recents or pulls the app forward.
+        -->
+        <activity
+            android:name=".ui.NoticeLinkActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- «نیم ساعت مانده تا آزمون» and the four after it -->
+        <receiver
+            android:name=".work.ExamAlarm"
+            android:exported="false" />
+
+        <receiver
+            android:name=".work.BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- the background news check that gets through Doze (see work/NoticeAlarm) -->
+        <receiver
+            android:name=".work.NoticeAlarm"
+            android:exported="false" />
     </application>
 
 </manifest>

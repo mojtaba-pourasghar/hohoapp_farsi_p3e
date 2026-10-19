@@ -62,6 +62,35 @@ input[type=text], input[type=password], input[type=number], select {
   background: #fcfbf9; color: var(--ink); font: inherit; font-size: 13.5px;
 }
 input:focus, select:focus { outline: 2px solid var(--orange-soft); border-color: var(--orange); }
+
+/*
+  The open dropdown was a list of blank rows.
+
+  A <select> styled with a custom background hands its <option>s nothing: the browser paints the
+  popup with its own idea of the colours, which on a light page with a tinted control came out as
+  near-white text on near-white. The options were always there — they just could not be read. So
+  each one is told what it is, and the control is given a visible arrow instead of relying on the
+  native one, which the custom padding was sitting on top of.
+*/
+select {
+  appearance: none; -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(10px) calc(50% - 2px), calc(15px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-inline-start: 28px;
+  cursor: pointer;
+}
+
+select option {
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  padding: 6px 10px;
+}
+
+select option:checked { background: var(--teal-soft); color: var(--ink); }
 .check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); margin-top: 22px; }
 .check input { width: 17px; height: 17px; accent-color: var(--teal); }
 
@@ -76,7 +105,14 @@ button:hover:not(:disabled) { filter: brightness(.96); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.go { background: var(--teal); color: #fff; }
 button.warn { background: var(--pink); color: #fff; }
-button.ghost { background: #fff; border-color: var(--line); }
+/*
+  «go ghost» has to win back the ink, or it is white on white.
+
+  button.go sets color:#fff for a filled teal button; .ghost only replaced the background, so
+  every element carrying both classes rendered its label invisible — which is what made the two
+  date fields look like empty boxes with nothing but an emoji in them.
+*/
+button.ghost { background: #fff; border-color: var(--line); color: var(--ink); }
 button.chip { background: var(--orange-soft); border-color: #f6d9b4; color: #9a5a06; }
 button.chip.sel { background: var(--orange); border-color: var(--orange); color: #fff; }
 button.tiny { padding: 4px 9px; font-size: 11.5px; border-radius: 7px; }

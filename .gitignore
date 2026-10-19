@@ -26,6 +26,7 @@ __pycache__/
 /tools/karbarg-out/
 /tools/voice-studio/publish-out/
 /tools/voice-studio/exam.json
+/tools/voice-studio/notices.json
 
 # the APK signing key never goes in the repo — it lives in a GitHub secret
 /keystore/
